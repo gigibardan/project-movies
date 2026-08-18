@@ -6,6 +6,7 @@ import { getMovieDetails, IMG, getDirectors, topCast, ratingColor } from '@/lib/
 import { cn } from '@/lib/utils';
 import MediaCard from '@/components/MediaCard';
 import TrailerSection from '@/components/TrailerSection';
+import { isMovieAvailable } from '@/lib/filesun';
 
 export const revalidate = 3600;
 
@@ -36,6 +37,7 @@ export default async function MovieDetailPage({ params }: { params: { id: string
   const trailer = movie.videos?.results || [];
   const similar = movie.similar?.results?.filter((m) => m.poster_path).slice(0, 12) || [];
   const recommendations = movie.recommendations?.results?.filter((m) => m.poster_path).slice(0, 12) || [];
+  const available = await isMovieAvailable(movie.imdb_id);
 
   return (
     <div className="min-h-screen">
@@ -166,8 +168,8 @@ export default async function MovieDetailPage({ params }: { params: { id: string
             </div>
 
             {/* Watch button */}
-            {movie.imdb_id && (
-              <div className="mt-6">
+            <div className="mt-6">
+              {available ? (
                 <Link
                   href={`/watch/movie/${params.id}`}
                   className="inline-flex items-center gap-2 rounded-full bg-red-600 px-6 py-3 text-sm font-bold text-white shadow-lg shadow-red-600/25 transition-all hover:bg-red-500 hover:shadow-red-500/30 active:scale-95"
@@ -175,8 +177,13 @@ export default async function MovieDetailPage({ params }: { params: { id: string
                   <svg className="h-5 w-5 fill-current" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
                   Watch Now
                 </Link>
-              </div>
-            )}
+              ) : (
+                <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-6 py-3 text-sm font-semibold text-zinc-400 cursor-default">
+                  <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6l4 2" /><circle cx="12" cy="12" r="10" /></svg>
+                  Coming Soon
+                </span>
+              )}
+            </div>
 
             {/* External links */}
             <div className="mt-6 flex flex-wrap gap-3">

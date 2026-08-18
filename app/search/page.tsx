@@ -1,6 +1,7 @@
 import { searchMulti } from '@/lib/tmdb';
 import MediaGrid from '@/components/MediaGrid';
 import { Search } from 'lucide-react';
+import { getAvailableTVIds } from '@/lib/filesun';
 
 export const revalidate = 300;
 
@@ -21,9 +22,12 @@ export default async function SearchPage({ searchParams }: SearchPageProps) {
     }
   }
 
+  const tvIds = await getAvailableTVIds();
+
   const items = (results?.results || [])
     .filter((r) => r.media_type === 'movie' || r.media_type === 'tv')
-    .filter((r) => r.poster_path || r.backdrop_path);
+    .filter((r) => r.poster_path || r.backdrop_path)
+    .map((r) => (r.media_type === 'tv' && tvIds.has(r.id) ? { ...r, available: true } : r));
 
   return (
     <div className="mx-auto max-w-7xl px-4 pt-24 pb-12 sm:px-6 lg:px-8">

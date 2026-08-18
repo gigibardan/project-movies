@@ -2,6 +2,7 @@ import { getTVByCategory, getTVGenres, discoverTV } from '@/lib/tmdb';
 import MediaGrid from '@/components/MediaGrid';
 import { Tv } from 'lucide-react';
 import type { Metadata } from 'next';
+import { getAvailableTVIds } from '@/lib/filesun';
 
 export const revalidate = 3600;
 
@@ -24,6 +25,7 @@ export default async function TVPage({ searchParams }: TVPageProps) {
   const genreId = searchParams.genre;
 
   const genres = await getTVGenres();
+  const tvIds = await getAvailableTVIds();
   const selectedGenre = genres.find((g) => String(g.id) === genreId);
 
   const data = genreId
@@ -32,7 +34,7 @@ export default async function TVPage({ searchParams }: TVPageProps) {
 
   const items = data.results
     .filter((m) => m.poster_path)
-    .map((m) => ({ ...m, media_type: 'tv' as const }));
+    .map((m) => ({ ...m, media_type: 'tv' as const, available: tvIds.has(m.id) }));
 
   const basePath = (() => {
     const sp = new URLSearchParams();
@@ -56,9 +58,8 @@ export default async function TVPage({ searchParams }: TVPageProps) {
               <a
                 key={c.key}
                 href={`/tv?category=${c.key}`}
-                className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
-                  active ? 'bg-red-600 text-white' : 'border border-white/10 bg-white/5 text-zinc-300 hover:bg-white/10 hover:text-white'
-                }`}
+                className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${active ? 'bg-red-600 text-white' : 'border border-white/10 bg-white/5 text-zinc-300 hover:bg-white/10 hover:text-white'
+                  }`}
               >
                 {c.label}
               </a>
@@ -72,9 +73,8 @@ export default async function TVPage({ searchParams }: TVPageProps) {
               <a
                 key={g.id}
                 href={`/tv?genre=${g.id}`}
-                className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
-                  active ? 'bg-red-600 text-white' : 'border border-white/5 bg-transparent text-zinc-500 hover:text-zinc-200'
-                }`}
+                className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${active ? 'bg-red-600 text-white' : 'border border-white/5 bg-transparent text-zinc-500 hover:text-zinc-200'
+                  }`}
               >
                 {g.name}
               </a>
