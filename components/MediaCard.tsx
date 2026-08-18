@@ -1,11 +1,12 @@
 import Link from 'next/link';
 import Image from 'next/image';
-import { Star, Play } from 'lucide-react';
+import { Star } from 'lucide-react';
 import type { Movie, TVShow } from '@/lib/tmdb-types';
 import { IMG, ratingColor } from '@/lib/tmdb';
 import { cn } from '@/lib/utils';
+import WatchBadge from './WatchBadge';
 
-type MediaItem = (Movie | TVShow) & { media_type?: string; available?: boolean };
+type MediaItem = (Movie | TVShow) & { media_type?: string };
 
 interface MediaCardProps {
   item: MediaItem;
@@ -19,7 +20,6 @@ export default function MediaCard({ item, className }: MediaCardProps) {
   const year = date ? date.slice(0, 4) : '';
   const href = isTV ? `/tv/${item.id}` : `/movie/${item.id}`;
   const poster = IMG.poster(item.poster_path, 'w342');
-  const watchHref = isTV ? `/watch/tv/${item.id}/1/1` : null;
 
   return (
     <Link href={href} className={cn('group block', className)}>
@@ -47,13 +47,7 @@ export default function MediaCard({ item, className }: MediaCardProps) {
           </span>
         </div>
 
-        {/* Watch badge — only when available */}
-        {item.available && watchHref && (
-          <span className="absolute bottom-2 left-2 z-10 flex items-center gap-1.5 rounded-full bg-red-600/90 px-3 py-1.5 text-xs font-bold text-white shadow-lg shadow-black/30 backdrop-blur-sm">
-            <Play className="h-3 w-3 fill-current" />
-            Available
-          </span>
-        )}
+        {isTV && <WatchBadge tmdbId={item.id} />}
 
         <div className="absolute inset-x-0 bottom-0 p-3 opacity-0 transition-all duration-300 group-hover:opacity-100">
           <p className="text-xs font-medium text-zinc-300">{year}</p>

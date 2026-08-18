@@ -2,7 +2,7 @@ import { getTrending } from '@/lib/tmdb';
 import MediaGrid from '@/components/MediaGrid';
 import { TrendingUp } from 'lucide-react';
 import type { Metadata } from 'next';
-import { getAvailableTVIds } from '@/lib/filesun';
+
 
 export const revalidate = 3600;
 
@@ -15,17 +15,13 @@ export const metadata: Metadata = { title: 'Trending — CineStream', descriptio
 export default async function TrendingPage({ searchParams }: TrendingPageProps) {
   const page = Math.max(1, Math.min(500, Number(searchParams.page) || 1));
   const window = searchParams.window === 'day' ? 'day' : 'week';
-  const tvIds = await getAvailableTVIds();
+
 
   const data = await getTrending(window, 'all');
 
-  const items = data.results
+   const items = data.results
     .filter((m) => m.poster_path && (m.media_type === 'movie' || m.media_type === 'tv'))
-    .map((m) => ({
-      ...m,
-      media_type: m.media_type as 'movie' | 'tv',
-      ...(m.media_type === 'tv' && tvIds.has(m.id) ? { available: true } : {}),
-    }));
+    .map((m) => ({ ...m, media_type: m.media_type as 'movie' | 'tv' }));
 
   return (
     <div className="mx-auto max-w-7xl px-4 pt-24 pb-12 sm:px-6 lg:px-8">

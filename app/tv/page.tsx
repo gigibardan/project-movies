@@ -2,7 +2,7 @@ import { getTVByCategory, getTVGenres, discoverTV } from '@/lib/tmdb';
 import MediaGrid from '@/components/MediaGrid';
 import { Tv } from 'lucide-react';
 import type { Metadata } from 'next';
-import { getAvailableTVIds } from '@/lib/filesun';
+
 
 export const revalidate = 3600;
 
@@ -25,16 +25,16 @@ export default async function TVPage({ searchParams }: TVPageProps) {
   const genreId = searchParams.genre;
 
   const genres = await getTVGenres();
-  const tvIds = await getAvailableTVIds();
+  
   const selectedGenre = genres.find((g) => String(g.id) === genreId);
 
   const data = genreId
     ? await discoverTV({ with_genres: genreId, sort_by: 'popularity.desc', page, 'vote_count.gte': 20 })
     : await getTVByCategory(CATEGORIES.find((c) => c.key === category)?.key || 'popular', page);
 
-  const items = data.results
+   const items = data.results
     .filter((m) => m.poster_path)
-    .map((m) => ({ ...m, media_type: 'tv' as const, available: tvIds.has(m.id) }));
+    .map((m) => ({ ...m, media_type: 'tv' as const }));
 
   const basePath = (() => {
     const sp = new URLSearchParams();
