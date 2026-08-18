@@ -38,7 +38,6 @@ export default async function MovieDetailPage({ params }: { params: { id: string
   const similar = movie.similar?.results?.filter((m) => m.poster_path).slice(0, 12) || [];
   const recommendations = movie.recommendations?.results?.filter((m) => m.poster_path).slice(0, 12) || [];
   const available = await isMovieAvailable(movie.imdb_id);
-
   return (
     <div className="min-h-screen">
       {/* Backdrop */}
