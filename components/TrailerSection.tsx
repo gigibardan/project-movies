@@ -19,25 +19,37 @@ export default function TrailerSection({ videos, title }: TrailerSectionProps) {
 
   return (
     <div className="mt-10">
-      <h2 className="mb-4 text-xl font-bold text-white sm:text-2xl">Videos</h2>
+      <h2 className="mb-4 text-xl font-bold text-white sm:text-2xl">Trailer</h2>
+      
       {!open ? (
         <button
           onClick={() => setOpen(true)}
-          className="group relative aspect-video w-full max-w-3xl overflow-hidden rounded-xl bg-zinc-900"
+          className="group relative aspect-video w-full max-w-3xl overflow-hidden rounded-xl bg-zinc-900 shadow-lg"
         >
-          <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-zinc-800 to-zinc-900">
-            <div className="flex flex-col items-center gap-3">
-              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-red-600/90 transition-all group-hover:scale-110 group-hover:bg-red-500">
-                <svg className="h-7 w-7 text-white" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M8 5v14l11-7z" />
-                </svg>
-              </div>
-              <p className="text-sm font-medium text-zinc-300">Play trailer</p>
+          {/* Imaginea de fundal de la YouTube */}
+          <img
+            src={`https://img.youtube.com/vi/${trailer.key}/maxresdefault.jpg`}
+            alt={`Trailer for ${title}`}
+            className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+          />
+          
+          {/* Overlay întunecat pentru contrast */}
+          <div className="absolute inset-0 bg-black/40 transition-colors group-hover:bg-black/20" />
+
+          {/* Butonul de Play centrat */}
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-3">
+            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-red-600/90 shadow-xl shadow-black/50 backdrop-blur-sm transition-all group-hover:scale-110 group-hover:bg-red-500">
+              <svg className="ml-1 h-7 w-7 text-white" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M8 5v14l11-7z" />
+              </svg>
             </div>
+            <span className="rounded-md bg-black/60 px-3 py-1.5 text-sm font-semibold text-white backdrop-blur-md">
+              Play Trailer
+            </span>
           </div>
         </button>
       ) : (
-        <div className="aspect-video w-full max-w-3xl overflow-hidden rounded-xl bg-black">
+        <div className="aspect-video w-full max-w-3xl overflow-hidden rounded-xl bg-black shadow-lg">
           <iframe
             src={`https://www.youtube.com/embed/${trailer.key}?autoplay=1&rel=0`}
             title={`${title} trailer`}

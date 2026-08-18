@@ -1,0 +1,4 @@
+npm run sync
+git add public/data/filesun-ids.json
+git commit -m "chore: sync FileSuN IDs"
+git push

@@ -37,11 +37,13 @@ export default function MediaGrid({ items, currentPage, totalPages, basePath, em
           <p className="text-zinc-500">{emptyMessage}</p>
         </div>
       ) : (
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
-          {items.map((item) => (
-            <MediaCard key={`${item.id}-${item.media_type ?? ''}`} item={item} />
-          ))}
-        </div>
+        <div className="flex flex-wrap justify-center gap-4">
+  {items.map((item) => (
+    <div key={`${item.id}-${item.media_type ?? ''}`} className="w-[calc(50%-0.5rem)] sm:w-[calc(33.333%-0.75rem)] md:w-[calc(25%-0.75rem)] lg:w-[calc(20%-0.8rem)] xl:w-[calc(16.666%-0.85rem)]">
+      <MediaCard item={item} />
+    </div>
+  ))}
+</div>
       )}
 
       {totalPages > 1 && (
