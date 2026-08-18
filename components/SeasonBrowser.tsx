@@ -2,10 +2,11 @@
 
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
-import { ChevronDown } from 'lucide-react';
 import type { SeasonDetails, Episode } from '@/lib/tmdb-types';
 import { IMG } from '@/lib/tmdb';
 import { cn } from '@/lib/utils';
+import Link from 'next/link';
+import { ChevronDown, Play } from 'lucide-react';
 
 interface SeasonBrowserProps {
   tvId: string;
@@ -74,7 +75,7 @@ export default function SeasonBrowser({ tvId, seasons }: SeasonBrowserProps) {
       ) : data?.episodes?.length ? (
         <div className="space-y-3">
           {data.episodes.filter((e) => e.name && e.name !== 'Episode 1' || e.overview).map((ep) => (
-            <EpisodeRow key={ep.id} ep={ep} />
+            <EpisodeRow key={ep.id} ep={ep} tvId={tvId} />
           ))}
         </div>
       ) : (
@@ -84,11 +85,14 @@ export default function SeasonBrowser({ tvId, seasons }: SeasonBrowserProps) {
   );
 }
 
-function EpisodeRow({ ep }: { ep: Episode }) {
+function EpisodeRow({ ep, tvId }: { ep: Episode; tvId: string }) {
   const still = IMG.backdrop(ep.still_path, 'w780');
   return (
     <div className="group flex gap-4 rounded-lg border border-white/5 bg-white/[0.02] p-3 transition-colors hover:border-white/10 hover:bg-white/5">
-      <div className="relative aspect-video w-32 shrink-0 overflow-hidden rounded-md bg-zinc-900 sm:w-40">
+      <Link
+        href={`/watch/tv/${tvId}/${ep.season_number}/${ep.episode_number}`}
+        className="relative aspect-video w-32 shrink-0 overflow-hidden rounded-md bg-zinc-900 sm:w-40"
+      >
         {still ? (
           <Image src={still} alt={ep.name} fill sizes="160px" className="object-cover" />
         ) : (
@@ -97,7 +101,10 @@ function EpisodeRow({ ep }: { ep: Episode }) {
         <div className="absolute left-1 top-1 rounded bg-black/80 px-1.5 py-0.5 text-xs font-bold text-white">
           E{ep.episode_number}
         </div>
-      </div>
+        <div className="absolute inset-0 flex items-center justify-center bg-black/0 transition-colors group-hover:bg-black/40">
+          <Play className="h-8 w-8 text-white opacity-0 transition-opacity group-hover:opacity-100" fill="currentColor" />
+        </div>
+      </Link>
       <div className="min-w-0 flex-1">
         <div className="flex items-baseline gap-2">
           <h3 className="line-clamp-1 text-sm font-semibold text-white">{ep.name}</h3>

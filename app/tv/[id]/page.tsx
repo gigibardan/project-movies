@@ -145,6 +145,16 @@ export default async function TVDetailPage({ params }: { params: { id: string } 
             </div>
 
             <div className="mt-6 flex flex-wrap gap-3">
+              <Link
+                href={`/watch/tv/${tv.id}/1/1`}
+                className="inline-flex items-center gap-2 rounded-full bg-red-600 px-6 py-3 text-sm font-bold text-white shadow-lg shadow-red-600/25 transition-all hover:bg-red-500 hover:shadow-red-500/30 active:scale-95"
+              >
+                <svg className="h-5 w-5 fill-current" viewBox="0 0 24 24">
+                  <path d="M8 5v14l11-7z" />
+                </svg>
+                Watch S1 E1
+              </Link>
+
               {tv.homepage && (
                 <a
                   href={tv.homepage}
@@ -206,6 +216,6 @@ export default async function TVDetailPage({ params }: { params: { id: string } 
           </div>
         )}
       </div>
-    </div>
+    </div >
   );
 }

@@ -165,6 +165,19 @@ export default async function MovieDetailPage({ params }: { params: { id: string
               ) : null}
             </div>
 
+            {/* Watch button */}
+            {movie.imdb_id && (
+              <div className="mt-6">
+                <Link
+                  href={`/watch/movie/${params.id}`}
+                  className="inline-flex items-center gap-2 rounded-full bg-red-600 px-6 py-3 text-sm font-bold text-white shadow-lg shadow-red-600/25 transition-all hover:bg-red-500 hover:shadow-red-500/30 active:scale-95"
+                >
+                  <svg className="h-5 w-5 fill-current" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
+                  Watch Now
+                </Link>
+              </div>
+            )}
+
             {/* External links */}
             <div className="mt-6 flex flex-wrap gap-3">
               {movie.imdb_id && (
