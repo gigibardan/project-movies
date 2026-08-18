@@ -46,7 +46,7 @@ export default function Navbar() {
         <Link href="/" className="flex items-center gap-2 text-white" aria-label="CineStream home">
           <Film className="h-7 w-7 text-red-500" strokeWidth={2.2} />
           <span className="text-lg font-bold tracking-tight">
-            Cine<span className="text-red-500">Stream</span>
+            Anca<span className="text-red-500">Stream</span>
           </span>
         </Link>
 
