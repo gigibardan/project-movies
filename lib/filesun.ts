@@ -1,17 +1,20 @@
 // lib/filesun.ts
 
-const FILESUN_BASE = 'https://filesun.sbs/available';
-
 let movieCache: { set: Set<string>; ts: number } | null = null;
 let tvCache: { set: Set<number>; ts: number } | null = null;
-const TTL = 30 * 60 * 1000; // 30 min in browser
+const TTL = 30 * 60 * 1000; // 30 min
+
+function getBaseUrl() {
+  if (typeof window !== 'undefined') return '';
+  return process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+}
 
 async function fetchPage(type: 'movies' | 'tv', page: number): Promise<{ ids: string[]; pages: number }> {
   try {
-    const res = await fetch(`${FILESUN_BASE}/${type}?page=${page}`);
+    const base = getBaseUrl();
+    const res = await fetch(`${base}/api/filesun?type=${type}&page=${page}`);
     if (!res.ok) return { ids: [], pages: 0 };
-    const data = await res.json();
-    return { ids: (data.ids || []) as string[], pages: data.pages || 0 };
+    return await res.json();
   } catch {
     return { ids: [], pages: 0 };
   }
