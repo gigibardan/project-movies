@@ -4,27 +4,54 @@ let movieCache: { set: Set<string>; ts: number } | null = null;
 let tvCache: { set: Set<number>; ts: number } | null = null;
 const TTL = 6 * 60 * 60 * 1000; // 6 ore
 
-async function fetchPage(type: 'movies' | 'tv', page: number) {
+async function fetchPage(type: 'movies' | 'tv', page: number): Promise<{ ids: string[]; pages: number }> {
+  const url = `https://filesun.sbs/available/${type}?page=${page}`;
   try {
-    const res = await fetch(`https://filesun.sbs/available/${type}?page=${page}`, {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 10000); // 10s timeout
+
+    const res = await fetch(url, {
+      signal: controller.signal,
       next: { revalidate: 21600 },
+      headers: { 'User-Agent': 'CineStream/1.0' },
     });
-    if (!res.ok) return { ids: [] as string[], pages: 0 };
+    clearTimeout(timeout);
+
+    if (!res.ok) {
+      console.error(`[FileSuN] ${type} page ${page}: HTTP ${res.status}`);
+      return { ids: [], pages: 0 };
+    }
+
     const data = await res.json();
+    console.log(`[FileSuN] ${type} page ${page}: ${(data.ids || []).length} ids, ${data.pages} total pages`);
     return { ids: (data.ids || []) as string[], pages: data.pages || 0 };
-  } catch {
-    return { ids: [] as string[], pages: 0 };
+  } catch (err) {
+    console.error(`[FileSuN] ${type} page ${page} FAILED:`, (err as Error).message);
+    return { ids: [], pages: 0 };
   }
 }
 
 async function fetchAllIds(type: 'movies' | 'tv'): Promise<string[]> {
   const first = await fetchPage(type, 1);
+  if (first.ids.length === 0) {
+    console.warn(`[FileSuN] ${type}: first page returned 0 ids — API may be down`);
+    return [];
+  }
   if (first.pages <= 1) return first.ids;
 
-  const rest = await Promise.all(
-    Array.from({ length: first.pages - 1 }, (_, i) => fetchPage(type, i + 2))
-  );
-  return [...first.ids, ...rest.flatMap((r) => r.ids)];
+  // Fetch remaining pages in batches of 5 to avoid overwhelming
+  const allIds = [...first.ids];
+  for (let i = 2; i <= first.pages; i += 5) {
+    const batch = Array.from(
+      { length: Math.min(5, first.pages - i + 1) },
+      (_, j) => fetchPage(type, i + j)
+    );
+    const results = await Promise.all(batch);
+    allIds.push(...results.flatMap((r) => r.ids));
+  }
+
+  console.log(`[FileSuN] ${type}: total ${allIds.length} ids loaded`);
+  return allIds;
 }
 
 export async function getAvailableMovieIds(): Promise<Set<string>> {
