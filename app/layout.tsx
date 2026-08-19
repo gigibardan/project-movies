@@ -8,6 +8,14 @@ const inter = Inter({ subsets: ['latin'] });
 export const metadata: Metadata = {
   title: 'CineStream — Discover Movies & TV Shows',
   description: 'Browse trending movies and TV shows, watch trailers, and discover your next favorite.',
+  robots: {
+    index: false,
+    follow: false,
+    googleBot: {
+      index: false,
+      follow: false,
+    },
+  },
   openGraph: {
     title: 'CineStream',
     description: 'Discover movies & TV shows with trailers, ratings, and details.',
