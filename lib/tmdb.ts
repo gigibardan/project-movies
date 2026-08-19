@@ -44,17 +44,17 @@ export async function getTVByCategory(category: string, page = 1) {
 }
 
 export async function getMovieDetails(id: string) {
-  const data = await tmdbFetch<Movie & { videos: { results: Video[] }; credits: { cast: Credit[]; crew: Credit[] }; similar: TMDBResponse<Movie>; recommendations: TMDBResponse<Movie>; reviews: { results: Review[] } }>(
+  const data = await tmdbFetch<Movie & { videos: { results: Video[] }; credits: { cast: Credit[]; crew: Credit[] }; similar: TMDBResponse<Movie>; recommendations: TMDBResponse<Movie>; reviews: { results: Review[] }; 'watch/providers': import('./tmdb-types').WatchProviderResults }>(
     `/movie/${id}`,
-    { append_to_response: 'videos,credits,similar,recommendations,reviews' }
+    { append_to_response: 'videos,credits,similar,recommendations,reviews,watch/providers' }
   );
   return data;
 }
 
 export async function getTVDetails(id: string) {
-  const data = await tmdbFetch<TVShow & { videos: { results: Video[] }; credits: { cast: Credit[]; crew: Credit[] }; similar: TMDBResponse<TVShow>; recommendations: TMDBResponse<TVShow>; reviews: { results: Review[] } }>(
+  const data = await tmdbFetch<TVShow & { videos: { results: Video[] }; credits: { cast: Credit[]; crew: Credit[] }; similar: TMDBResponse<TVShow>; recommendations: TMDBResponse<TVShow>; reviews: { results: Review[] }; 'watch/providers': import('./tmdb-types').WatchProviderResults }>(
     `/tv/${id}`,
-    { append_to_response: 'videos,credits,similar,recommendations,reviews' }
+    { append_to_response: 'videos,credits,similar,recommendations,reviews,watch/providers' }
   );
   return data;
 }

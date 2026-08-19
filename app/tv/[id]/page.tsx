@@ -9,6 +9,7 @@ import TrailerSection from '@/components/TrailerSection';
 import SeasonBrowser from '@/components/SeasonBrowser';
 import WatchButton from '@/components/WatchButton';
 import WatchlistButton from '@/components/WatchlistButton';
+import WatchProviders from '@/components/WatchProviders';
 
 
 export const revalidate = 3600;
@@ -156,16 +157,16 @@ export default async function TVDetailPage({ params }: { params: { id: string } 
                 label="Watch S1 E1"
               />
 
-            <div className="mt-3">
-              <WatchlistButton
-                id={tv.id}
-                type="tv"
-                title={tv.name}
-                poster_path={tv.poster_path}
-                vote_average={tv.vote_average}
-                year={tv.first_air_date?.slice(0, 4) || ''}
-              />
-            </div>
+              <div className="mt-3">
+                <WatchlistButton
+                  id={tv.id}
+                  type="tv"
+                  title={tv.name}
+                  poster_path={tv.poster_path}
+                  vote_average={tv.vote_average}
+                  year={tv.first_air_date?.slice(0, 4) || ''}
+                />
+              </div>
 
               {tv.homepage && (
                 <a
@@ -182,6 +183,11 @@ export default async function TVDetailPage({ params }: { params: { id: string } 
         </div>
 
         <TrailerSection videos={trailer} title={tv.name} />
+        {/* Watch Providers */}
+        <WatchProviders
+          providers={tv['watch/providers']?.results}
+          title={tv.name}
+        />
 
         {/* Seasons & Episodes */}
         {tv.seasons && tv.seasons.length > 0 && (

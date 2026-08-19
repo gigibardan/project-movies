@@ -121,3 +121,22 @@ export interface Review {
   created_at: string;
   author_details: { rating: number | null; avatar_path: string | null };
 }
+export interface WatchProvider {
+  logo_path: string;
+  provider_id: number;
+  provider_name: string;
+  display_priority: number;
+}
+
+export interface WatchProviderCountry {
+  link: string;
+  flatrate?: WatchProvider[];
+  rent?: WatchProvider[];
+  buy?: WatchProvider[];
+  ads?: WatchProvider[];
+  free?: WatchProvider[];
+}
+
+export interface WatchProviderResults {
+  results: Record<string, WatchProviderCountry>;
+}

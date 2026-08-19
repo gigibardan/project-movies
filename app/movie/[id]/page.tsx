@@ -8,6 +8,7 @@ import MediaCard from '@/components/MediaCard';
 import TrailerSection from '@/components/TrailerSection';
 import WatchButton from '@/components/WatchButton';
 import WatchlistButton from '@/components/WatchlistButton';
+import WatchProviders from '@/components/WatchProviders';
 
 export const revalidate = 3600;
 
@@ -216,6 +217,12 @@ export default async function MovieDetailPage({ params }: { params: { id: string
 
         {/* Trailer */}
         <TrailerSection videos={trailer} title={movie.title} />
+
+        {/* Watch Providers */}
+        <WatchProviders
+          providers={movie['watch/providers']?.results}
+          title={movie.title}
+        />
 
         {/* Cast */}
         {cast.length > 0 && (
