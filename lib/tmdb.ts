@@ -103,6 +103,55 @@ export function topCast(cast: Credit[], n = 10): Credit[] {
   return (cast || []).slice(0, n);
 }
 
+export async function getClassics() {
+  return discoverMovies({
+    sort_by: 'vote_average.desc',
+    'vote_count.gte': 5000,
+    'primary_release_date.lte': '2000-12-31',
+    page: 1,
+  });
+}
+
+export async function getBestOfYear(year: number) {
+  return discoverMovies({
+    sort_by: 'vote_average.desc',
+    'vote_count.gte': 50,
+    'primary_release_date.gte': `${year}-01-01`,
+    'primary_release_date.lte': `${year}-12-31`,
+    page: 1,
+  });
+}
+
+export async function getHiddenGems() {
+  return discoverMovies({
+    sort_by: 'vote_average.desc',
+    'vote_count.gte': 500,
+    page: 1,
+  });
+}
+
+export async function getMoviesByGenre(genreId: number) {
+  return discoverMovies({
+    with_genres: String(genreId),
+    sort_by: 'popularity.desc',
+    'vote_count.gte': 100,
+    page: 1,
+  });
+}
+
+export async function getTVByGenre(genreId: number) {
+  return discoverTV({
+    with_genres: String(genreId),
+    sort_by: 'popularity.desc',
+    'vote_count.gte': 50,
+    page: 1,
+  });
+}
+
+export async function getUpcoming() {
+  return getMoviesByCategory('upcoming');
+}
+
 export function ratingColor(rating: number): string {
   if (rating >= 7.5) return 'text-emerald-400';
   if (rating >= 6) return 'text-yellow-400';
