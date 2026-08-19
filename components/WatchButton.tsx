@@ -7,25 +7,17 @@ import { getAvailableMovieIds, getAvailableTVIds } from '@/lib/filesun';
 interface WatchButtonProps {
   type: 'movie' | 'tv';
   tmdbId: string;
-  imdbId?: string | null;
   label?: string;
   watchHref: string;
 }
 
-export default function WatchButton({ type, tmdbId, imdbId, label, watchHref }: WatchButtonProps) {
+export default function WatchButton({ type, tmdbId, label, watchHref }: WatchButtonProps) {
   const [status, setStatus] = useState<'loading' | 'available' | 'unavailable'>('loading');
 
   useEffect(() => {
-    if (type === 'movie') {
-      if (!imdbId) {
-        setStatus('unavailable');
-        return;
-      }
-      getAvailableMovieIds().then((set) => setStatus(set.has(imdbId) ? 'available' : 'unavailable'));
-    } else {
-      getAvailableTVIds().then((set) => setStatus(set.has(Number(tmdbId)) ? 'available' : 'unavailable'));
-    }
-  }, [type, tmdbId, imdbId]);
+    const check = type === 'movie' ? getAvailableMovieIds : getAvailableTVIds;
+    check().then((set) => setStatus(set.has(Number(tmdbId)) ? 'available' : 'unavailable'));
+  }, [type, tmdbId]);
 
   if (status === 'loading') {
     return (

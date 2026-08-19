@@ -1,31 +1,37 @@
 // lib/filesun.ts
 
-let movieCache: Set<string> | null = null;
-let tvCache: Set<number> | null = null;
+interface FileSuNData {
+  movies: { tmdbIds: number[] };
+  tv: { tmdbIds: number[] };
+}
 
-async function loadIds(): Promise<{ movies: string[]; tv: string[] }> {
+let cache: { movies: Set<number>; tv: Set<number> } | null = null;
+
+async function loadData(): Promise<{ movies: Set<number>; tv: Set<number> }> {
+  if (cache) return cache;
+
   try {
     const base = typeof window !== 'undefined' ? '' : (process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000');
     const res = await fetch(`${base}/data/filesun-ids.json`);
-    if (!res.ok) return { movies: [], tv: [] };
-    return await res.json();
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data: FileSuNData = await res.json();
+
+    cache = {
+      movies: new Set(data.movies.tmdbIds),
+      tv: new Set(data.tv.tmdbIds),
+    };
+    return cache;
   } catch {
-    return { movies: [], tv: [] };
+    return { movies: new Set(), tv: new Set() };
   }
 }
 
-export async function getAvailableMovieIds(): Promise<Set<string>> {
-  if (movieCache) return movieCache;
-  const data = await loadIds();
-  movieCache = new Set(data.movies);
-  tvCache = new Set(data.tv.map(Number).filter((n) => !isNaN(n)));
-  return movieCache;
+export async function getAvailableMovieIds(): Promise<Set<number>> {
+  const data = await loadData();
+  return data.movies;
 }
 
 export async function getAvailableTVIds(): Promise<Set<number>> {
-  if (tvCache) return tvCache;
-  const data = await loadIds();
-  movieCache = new Set(data.movies);
-  tvCache = new Set(data.tv.map(Number).filter((n) => !isNaN(n)));
-  return tvCache;
+  const data = await loadData();
+  return data.tv;
 }

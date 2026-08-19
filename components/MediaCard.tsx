@@ -47,8 +47,8 @@ export default function MediaCard({ item, className }: MediaCardProps) {
           </span>
         </div>
 
-        {isTV && <WatchBadge tmdbId={item.id} />}
-
+        <WatchBadge tmdbId={item.id} type={isTV ? 'tv' : 'movie'} />
+        
         <div className="absolute inset-x-0 bottom-0 p-3 opacity-0 transition-all duration-300 group-hover:opacity-100">
           <p className="text-xs font-medium text-zinc-300">{year}</p>
         </div>

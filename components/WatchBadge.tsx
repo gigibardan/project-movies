@@ -2,18 +2,20 @@
 
 import { useEffect, useState } from 'react';
 import { Play } from 'lucide-react';
-import { getAvailableTVIds } from '@/lib/filesun';
+import { getAvailableMovieIds, getAvailableTVIds } from '@/lib/filesun';
 
 interface WatchBadgeProps {
   tmdbId: number;
+  type: 'movie' | 'tv';
 }
 
-export default function WatchBadge({ tmdbId }: WatchBadgeProps) {
+export default function WatchBadge({ tmdbId, type }: WatchBadgeProps) {
   const [available, setAvailable] = useState(false);
 
   useEffect(() => {
-    getAvailableTVIds().then((set) => setAvailable(set.has(tmdbId)));
-  }, [tmdbId]);
+    const check = type === 'movie' ? getAvailableMovieIds : getAvailableTVIds;
+    check().then((set) => setAvailable(set.has(tmdbId)));
+  }, [tmdbId, type]);
 
   if (!available) return null;
 

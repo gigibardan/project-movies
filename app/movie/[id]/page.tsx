@@ -171,7 +171,6 @@ export default async function MovieDetailPage({ params }: { params: { id: string
               <WatchButton
                 type="movie"
                 tmdbId={params.id}
-                imdbId={movie.imdb_id}
                 watchHref={`/watch/movie/${params.id}`}
               />
             </div>
