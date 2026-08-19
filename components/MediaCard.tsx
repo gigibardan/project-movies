@@ -5,6 +5,7 @@ import type { Movie, TVShow } from '@/lib/tmdb-types';
 import { IMG, ratingColor } from '@/lib/tmdb';
 import { cn } from '@/lib/utils';
 import WatchBadge from './WatchBadge';
+import WatchlistButton from './WatchlistButton';
 
 type MediaItem = (Movie | TVShow) & { media_type?: string };
 
@@ -48,7 +49,17 @@ export default function MediaCard({ item, className }: MediaCardProps) {
         </div>
 
         <WatchBadge tmdbId={item.id} type={isTV ? 'tv' : 'movie'} />
-        
+
+        <WatchlistButton
+          id={item.id}
+          type={isTV ? 'tv' : 'movie'}
+          title={title}
+          poster_path={item.poster_path}
+          vote_average={item.vote_average}
+          year={year}
+          variant="icon"
+        />
+
         <div className="absolute inset-x-0 bottom-0 p-3 opacity-0 transition-all duration-300 group-hover:opacity-100">
           <p className="text-xs font-medium text-zinc-300">{year}</p>
         </div>

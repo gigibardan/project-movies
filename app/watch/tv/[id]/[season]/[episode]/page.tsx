@@ -2,6 +2,7 @@
 import Link from 'next/link';
 import { ArrowLeft, ChevronLeft, ChevronRight } from 'lucide-react';
 import { getTVDetails, getSeasonDetails } from '@/lib/tmdb';
+import WatchTracker from '@/components/WatchTracker';
 
 export const revalidate = 3600;
 
@@ -80,6 +81,16 @@ export default async function WatchTVPage({ params }: { params: { id: string; se
                         referrerPolicy="no-referrer"
                     />
                 </div>
+
+                <WatchTracker
+                    id={Number(params.id)}
+                    type="tv"
+                    title={tv.name}
+                    poster_path={tv.poster_path}
+                    season={seasonNum}
+                    episode={episodeNum}
+                    episodeTitle={currentEp?.name}
+                />
 
                 {/* Episode nav */}
                 <div className="flex items-center justify-between py-4">

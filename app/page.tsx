@@ -1,5 +1,10 @@
+import { Suspense } from 'react';
 import HeroCarousel from '@/components/HeroCarousel';
 import ContentRow from '@/components/ContentRow';
+import ContinueWatchingRow from '@/components/ContinueWatchingRow';
+import WatchlistRow from '@/components/WatchlistRow';
+import RecentlyAddedRow from '@/components/RecentlyAddedRow';
+import SkeletonRow from '@/components/SkeletonRow';
 import { getTrending, getMoviesByCategory, getTVByCategory } from '@/lib/tmdb';
 
 export const revalidate = 3600;
@@ -23,6 +28,14 @@ export default async function HomePage() {
       <HeroCarousel items={heroes} />
 
       <div className="relative z-10 -mt-20 space-y-10 sm:-mt-24">
+        {/* Personal rows — client-side, only show if user has data */}
+        <ContinueWatchingRow />
+        <WatchlistRow />
+
+        {/* Recently added from FileSuN */}
+        <RecentlyAddedRow />
+
+        {/* TMDB rows */}
         <ContentRow title="Trending This Week" items={trending.results.slice(0, 18)} seeAllHref="/trending" />
         <ContentRow title="Popular Movies" items={popularMovies.results} seeAllHref="/movies" />
         <ContentRow title="Popular TV Shows" items={popularTV.results} seeAllHref="/tv" />

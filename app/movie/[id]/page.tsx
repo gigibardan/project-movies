@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils';
 import MediaCard from '@/components/MediaCard';
 import TrailerSection from '@/components/TrailerSection';
 import WatchButton from '@/components/WatchButton';
+import WatchlistButton from '@/components/WatchlistButton';
 
 export const revalidate = 3600;
 
@@ -172,6 +173,18 @@ export default async function MovieDetailPage({ params }: { params: { id: string
                 type="movie"
                 tmdbId={params.id}
                 watchHref={`/watch/movie/${params.id}`}
+              />
+            </div>
+
+            {/* Watchlist */}
+            <div className="mt-3">
+              <WatchlistButton
+                id={movie.id}
+                type="movie"
+                title={movie.title}
+                poster_path={movie.poster_path}
+                vote_average={movie.vote_average}
+                year={movie.release_date?.slice(0, 4) || ''}
               />
             </div>
 

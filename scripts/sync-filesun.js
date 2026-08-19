@@ -6,11 +6,11 @@ const FILESUN_BASE = 'https://filesun.sbs/available';
 const TMDB_BASE = 'https://api.themoviedb.org/3';
 const OUT_DIR = path.join(__dirname, '..', 'public', 'data');
 const OUT_FILE = path.join(OUT_DIR, 'filesun-ids.json');
+const CATALOG_FILE = path.join(OUT_DIR, 'filesun-catalog.json');
 const MAPPING_FILE = path.join(OUT_DIR, 'imdb-tmdb-map.json');
 
 // Load TMDB key from .env.local
-require('fs')
-  .readFileSync(path.join(__dirname, '..', '.env.local'), 'utf-8')
+fs.readFileSync(path.join(__dirname, '..', '.env.local'), 'utf-8')
   .split('\n')
   .forEach((line) => {
     const [key, ...rest] = line.split('=');
@@ -61,8 +61,37 @@ async function imdbToTmdb(imdbId) {
     if (!res.ok) return null;
     const data = await res.json();
     const movie = data.movie_results?.[0];
-    if (movie) return { tmdbId: movie.id, title: movie.title };
+    if (movie) {
+      return {
+        tmdbId: movie.id,
+        title: movie.title,
+        poster_path: movie.poster_path,
+        vote_average: movie.vote_average,
+        release_date: movie.release_date,
+        popularity: movie.popularity,
+      };
+    }
     return null;
+  } catch {
+    return null;
+  }
+}
+
+async function fetchTVMeta(tmdbId) {
+  try {
+    const res = await fetch(
+      `${TMDB_BASE}/tv/${tmdbId}?api_key=${TMDB_KEY}&language=en-US`
+    );
+    if (!res.ok) return null;
+    const data = await res.json();
+    return {
+      id: data.id,
+      name: data.name,
+      poster_path: data.poster_path,
+      vote_average: data.vote_average,
+      first_air_date: data.first_air_date,
+      popularity: data.popularity,
+    };
   } catch {
     return null;
   }
@@ -80,8 +109,6 @@ async function convertImdbIds(imdbIds, existingMap) {
   let converted = 0;
   let failed = 0;
   const startTime = Date.now();
-
-  // Process in batches of 35 (under TMDB's 40/s limit)
   const BATCH_SIZE = 35;
 
   for (let i = 0; i < newIds.length; i += BATCH_SIZE) {
@@ -90,30 +117,78 @@ async function convertImdbIds(imdbIds, existingMap) {
 
     batch.forEach((imdbId, j) => {
       if (results[j]) {
-        map[imdbId] = results[j].tmdbId;
+        map[imdbId] = results[j]; // Save full metadata now
         converted++;
       } else {
-        map[imdbId] = null; // Mark as attempted but not found
+        map[imdbId] = null;
         failed++;
       }
     });
 
     const done = Math.min(i + BATCH_SIZE, newIds.length);
-    const elapsed = ((Date.now() - startTime) / 1000).toFixed(0);
-    const rate = (done / ((Date.now() - startTime) / 1000)).toFixed(1);
-    const eta = (((newIds.length - done) / rate) / 60).toFixed(1);
+    const elapsed = (Date.now() - startTime) / 1000;
+    const rate = (done / elapsed).toFixed(1);
+    const eta = (((newIds.length - done) / (done / elapsed)) / 60).toFixed(1);
     process.stdout.write(
       `\r  Progress: ${done}/${newIds.length} (${converted} ok, ${failed} failed) | ${rate}/s | ETA: ${eta}min`
     );
 
-    // Wait 1.1 seconds between batches to stay under rate limit
-    if (i + BATCH_SIZE < newIds.length) {
-      await sleep(1100);
-    }
+    if (i + BATCH_SIZE < newIds.length) await sleep(1100);
   }
 
   console.log('\n');
   return map;
+}
+
+async function fetchTVMetadata(tvIds, existingCatalog) {
+  const existingIds = new Set(existingCatalog.map((t) => t.id));
+  const newIds = tvIds.filter((id) => !existingIds.has(Number(id)));
+
+  console.log(`\n[TMDB TV] ${tvIds.length} total TV IDs`);
+  console.log(`[TMDB TV] ${existingCatalog.length} already have metadata`);
+  console.log(`[TMDB TV] ${newIds.length} new IDs to fetch`);
+
+  if (newIds.length === 0) return existingCatalog;
+
+  const results = [...existingCatalog];
+  let fetched = 0;
+  let failed = 0;
+  const startTime = Date.now();
+  const BATCH_SIZE = 35;
+
+  for (let i = 0; i < newIds.length; i += BATCH_SIZE) {
+    const batch = newIds.slice(i, i + BATCH_SIZE);
+    const data = await Promise.all(batch.map((id) => fetchTVMeta(id)));
+
+    data.forEach((item) => {
+      if (item) {
+        results.push({
+          id: item.id,
+          t: item.name,
+          p: item.poster_path,
+          y: item.first_air_date?.slice(0, 4) || '',
+          r: Math.round((item.vote_average || 0) * 10) / 10,
+          pop: item.popularity || 0,
+        });
+        fetched++;
+      } else {
+        failed++;
+      }
+    });
+
+    const done = Math.min(i + BATCH_SIZE, newIds.length);
+    const elapsed = (Date.now() - startTime) / 1000;
+    const rate = (done / elapsed).toFixed(1);
+    const eta = (((newIds.length - done) / (done / elapsed)) / 60).toFixed(1);
+    process.stdout.write(
+      `\r  TV Progress: ${done}/${newIds.length} (${fetched} ok, ${failed} failed) | ${rate}/s | ETA: ${eta}min`
+    );
+
+    if (i + BATCH_SIZE < newIds.length) await sleep(1100);
+  }
+
+  console.log('\n');
+  return results;
 }
 
 // --- Main ---
@@ -123,48 +198,107 @@ async function main() {
     fs.mkdirSync(OUT_DIR, { recursive: true });
   }
 
-  // Load existing mapping if available
+  // Load existing data
   let existingMap = {};
   if (fs.existsSync(MAPPING_FILE)) {
     existingMap = JSON.parse(fs.readFileSync(MAPPING_FILE, 'utf-8'));
     console.log(`Loaded existing mapping: ${Object.keys(existingMap).length} entries`);
   }
 
+  let existingTVCatalog = [];
+  if (fs.existsSync(CATALOG_FILE)) {
+    try {
+      const cat = JSON.parse(fs.readFileSync(CATALOG_FILE, 'utf-8'));
+      existingTVCatalog = cat.tv || [];
+    } catch { }
+  }
+
   // Fetch all IDs from FileSuN
   const movieImdbIds = await fetchAllFileSuNIds('movies');
   const tvTmdbIds = await fetchAllFileSuNIds('tv');
 
-  // Convert IMDb IDs to TMDB IDs
+  // Convert IMDb IDs to TMDB IDs (with metadata)
   const map = await convertImdbIds(movieImdbIds, existingMap);
 
-  // Save the raw mapping for incremental updates
+  // Save raw mapping
   fs.writeFileSync(MAPPING_FILE, JSON.stringify(map));
   console.log(`Mapping saved: ${Object.keys(map).length} entries`);
 
-  // Build the final output: sets of TMDB IDs
-  const movieTmdbIds = movieImdbIds
-    .map((imdbId) => map[imdbId])
-    .filter((id) => id != null);
+  // Fetch TV metadata
+  const tvCatalog = await fetchTVMetadata(tvTmdbIds, existingTVCatalog);
 
-  const output = {
+  // Build movie catalog from mapping data
+  const movieCatalog = movieImdbIds
+    .map((imdbId) => {
+      const entry = map[imdbId];
+      if (!entry || !entry.tmdbId) return null;
+      return {
+        id: entry.tmdbId,
+        t: entry.title,
+        p: entry.poster_path,
+        y: entry.release_date?.slice(0, 4) || '',
+        r: Math.round((entry.vote_average || 0) * 10) / 10,
+        pop: entry.popularity || 0,
+      };
+    })
+    .filter(Boolean);
+
+  // Build IDs file (for badges/buttons)
+  const idsOutput = {
     updated: new Date().toISOString(),
-    movies: {
-      tmdbIds: movieTmdbIds,
-      count: movieTmdbIds.length,
-    },
-    tv: {
-      tmdbIds: tvTmdbIds.map(Number).filter((n) => !isNaN(n)),
-      count: tvTmdbIds.length,
-    },
+    movies: { tmdbIds: movieCatalog.map((m) => m.id), count: movieCatalog.length },
+    tv: { tmdbIds: tvCatalog.map((t) => t.id), count: tvCatalog.length },
   };
+  fs.writeFileSync(OUT_FILE, JSON.stringify(idsOutput));
 
-  fs.writeFileSync(OUT_FILE, JSON.stringify(output));
+  // Build catalog file (for Available page)
+  // Sort by popularity descending
+  movieCatalog.sort((a, b) => (b.pop || 0) - (a.pop || 0));
+  tvCatalog.sort((a, b) => (b.pop || 0) - (a.pop || 0));
 
-  const sizeMB = (Buffer.byteLength(JSON.stringify(output)) / 1024 / 1024).toFixed(2);
-  console.log(`\nOutput saved to ${OUT_FILE} (${sizeMB} MB)`);
-  console.log(`Movies: ${output.movies.count} TMDB IDs (from ${movieImdbIds.length} IMDb IDs)`);
-  console.log(`TV: ${output.tv.count} TMDB IDs`);
-  console.log(`Updated: ${output.updated}`);
+  const catalogOutput = {
+    updated: new Date().toISOString(),
+    movies: movieCatalog.map(({ pop, ...rest }) => rest), // Remove pop from output to save space
+    tv: tvCatalog.map(({ pop, ...rest }) => rest),
+  };
+  fs.writeFileSync(CATALOG_FILE, JSON.stringify(catalogOutput));
+
+  // Build recently added diff
+  const DIFF_FILE = path.join(OUT_DIR, 'filesun-recent.json');
+  let previousIds = { movies: [], tv: [] };
+  if (fs.existsSync(DIFF_FILE)) {
+    try {
+      const prev = JSON.parse(fs.readFileSync(DIFF_FILE, 'utf-8'));
+      previousIds = { movies: prev.allMovieIds || [], tv: prev.allTVIds || [] };
+    } catch { }
+  }
+
+  const prevMovieSet = new Set(previousIds.movies);
+  const prevTVSet = new Set(previousIds.tv);
+
+  const newMovies = movieCatalog
+    .filter((m) => !prevMovieSet.has(m.id))
+    .slice(0, 50);
+  const newTV = tvCatalog
+    .filter((t) => !prevTVSet.has(t.id))
+    .slice(0, 50);
+
+  const recentOutput = {
+    updated: new Date().toISOString(),
+    newMovies: newMovies.map(({ pop, ...rest }) => rest),
+    newTV: newTV.map(({ pop, ...rest }) => rest),
+    allMovieIds: movieCatalog.map((m) => m.id),
+    allTVIds: tvCatalog.map((t) => t.id),
+  };
+  fs.writeFileSync(DIFF_FILE, JSON.stringify(recentOutput));
+  console.log(`Recently added: ${newMovies.length} movies, ${newTV.length} TV shows`);
+
+  const idSize = (Buffer.byteLength(JSON.stringify(idsOutput)) / 1024).toFixed(0);
+  const catSize = (Buffer.byteLength(JSON.stringify(catalogOutput)) / 1024 / 1024).toFixed(2);
+  console.log(`\nIDs file: ${idSize} KB`);
+  console.log(`Catalog file: ${catSize} MB`);
+  console.log(`Movies: ${movieCatalog.length} | TV: ${tvCatalog.length}`);
+  console.log(`Updated: ${idsOutput.updated}`);
 }
 
 main().catch((err) => {

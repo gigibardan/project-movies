@@ -2,6 +2,7 @@
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 import { getMovieDetails } from '@/lib/tmdb';
+import WatchTracker from '@/components/WatchTracker';
 
 export const revalidate = 3600;
 
@@ -58,6 +59,13 @@ export default async function WatchMoviePage({ params }: { params: { id: string 
             referrerPolicy="no-referrer"
           />
         </div>
+
+        <WatchTracker
+          id={Number(params.id)}
+          type="movie"
+          title={movie.title}
+          poster_path={movie.poster_path}
+        />
 
         {/* Movie info under player */}
         <div className="py-6">
