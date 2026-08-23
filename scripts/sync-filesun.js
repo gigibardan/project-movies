@@ -33,18 +33,24 @@ async function fetchFileSuNPage(type, page) {
 
 async function fetchAllFileSuNIds(type) {
   console.log(`\n[FileSuN] Fetching ${type}...`);
-  const first = await fetchFileSuNPage(type, 1);
-  const allIds = [...first.ids];
-  console.log(`  Page 1/${first.pages}: ${first.ids.length} ids`);
+  try {
+    const first = await fetchFileSuNPage(type, 1);
+    const allIds = [...first.ids];
+    console.log(`  Page 1/${first.pages}: ${first.ids.length} ids`);
 
-  for (let i = 2; i <= first.pages; i++) {
-    const data = await fetchFileSuNPage(type, i);
-    allIds.push(...data.ids);
-    console.log(`  Page ${i}/${first.pages}: ${data.ids.length} ids`);
+    for (let i = 2; i <= first.pages; i++) {
+      const data = await fetchFileSuNPage(type, i);
+      allIds.push(...data.ids);
+      console.log(`  Page ${i}/${first.pages}: ${data.ids.length} ids`);
+    }
+
+    console.log(`  Total ${type}: ${allIds.length}`);
+    return allIds;
+  } catch (err) {
+    console.warn(`  [FileSuN] ${type} fetch failed: ${err.message}`);
+    console.warn(`  [FileSuN] Using existing data if available`);
+    return null; // Signal to use existing data
   }
-
-  console.log(`  Total ${type}: ${allIds.length}`);
-  return allIds;
 }
 
 // --- TMDB conversion ---
@@ -214,8 +220,25 @@ async function main() {
   }
 
   // Fetch all IDs from FileSuN
-  const movieImdbIds = await fetchAllFileSuNIds('movies');
-  const tvTmdbIds = await fetchAllFileSuNIds('tv');
+  let movieImdbIds = await fetchAllFileSuNIds('movies');
+  let tvTmdbIds = await fetchAllFileSuNIds('tv');
+
+  // If FileSuN is blocked (403), use existing mapping keys as fallback
+  if (movieImdbIds === null) {
+    movieImdbIds = Object.keys(existingMap).filter((k) => existingMap[k] !== null);
+    console.log(`  Using ${movieImdbIds.length} movie IDs from existing mapping`);
+  }
+  if (tvTmdbIds === null) {
+    // Try to read from existing catalog
+    try {
+      const existing = JSON.parse(fs.readFileSync(OUT_FILE, 'utf-8'));
+      tvTmdbIds = (existing.tv?.tmdbIds || []).map(String);
+      console.log(`  Using ${tvTmdbIds.length} TV IDs from existing IDs file`);
+    } catch {
+      tvTmdbIds = [];
+      console.log(`  No existing TV data found`);
+    }
+  }
 
   // Convert IMDb IDs to TMDB IDs (with metadata)
   const map = await convertImdbIds(movieImdbIds, existingMap);
