@@ -22,31 +22,41 @@ if (!TMDB_KEY) {
   console.error('TMDB_API_KEY not found in .env.local');
   process.exit(1);
 }
-
 // --- FileSuN fetching ---
 
-
-// Funcție ajutătoare pentru cereri către FileSuN cu Retry automat la 429
-async function fetchFileSuNPage(type, page, retries = 5, backoff = 2000) {
+async function fetchFileSuNPage(type, page, retries = 5, backoff = 3000) {
   const url = `${FILESUN_BASE}/${type}?page=${page}`;
   
   try {
     const res = await fetch(url);
     
-    // Dacă primești 429 (Rate Limit), așteaptă și încearcă din nou
-    if (res.status === 429) {
+    // Tratare erori explicite de rate limit sau server
+    if (res.status === 429 || res.status >= 500) {
       if (retries > 0) {
-        console.warn(`  [FileSuN] 429 Rate limited la pagina ${page}. Aștept ${backoff / 1000}s înainte de retry... (${retries} încercări rămase)`);
+        console.warn(`  [FileSuN] HTTP ${res.status} la pagina ${page}. Aștept ${backoff / 1000}s... (${retries} rămas)`);
         await sleep(backoff);
-        return fetchFileSuNPage(type, page, retries - 1, backoff * 2); // dublează pauza pentru următorul retry
+        return fetchFileSuNPage(type, page, retries - 1, backoff * 2);
       }
-      throw new Error(`FileSuN HTTP 429 (Too Many Requests) - limite depășite definitiv.`);
+      throw new Error(`FileSuN HTTP ${res.status} la pagina ${page}`);
     }
 
     if (!res.ok) throw new Error(`FileSuN HTTP ${res.status} pentru ${type} pagina ${page}`);
-    return await res.json();
+    
+    const data = await res.json();
+
+    // Verificare pentru "silent rate-limiting" (întoarce HTTP 200 dar fără ID-uri)
+    const hasNoIds = !data || !Array.isArray(data.ids) || data.ids.length === 0;
+    
+    // Dacă e prima pagină nu știm totalul, dar de la pagina 2 încolo (până la ultima), 0 ID-uri este o eroare clară
+    if (hasNoIds && retries > 0) {
+      console.warn(`  [FileSuN] Pagina ${page} a întors 0 ID-uri (posibil rate-limit silent). Reîncerc în ${backoff / 1000}s...`);
+      await sleep(backoff);
+      return fetchFileSuNPage(type, page, retries - 1, backoff * 2);
+    }
+
+    return data;
   } catch (err) {
-    if (retries > 0 && err.message.includes('429')) {
+    if (retries > 0) {
       await sleep(backoff);
       return fetchFileSuNPage(type, page, retries - 1, backoff * 2);
     }
@@ -58,16 +68,22 @@ async function fetchAllFileSuNIds(type) {
   console.log(`\n[FileSuN] Fetching ${type}...`);
   try {
     const first = await fetchFileSuNPage(type, 1);
-    const allIds = [...first.ids];
-    console.log(`  Page 1/${first.pages}: ${first.ids.length} ids`);
+    const allIds = [...(first.ids || [])];
+    console.log(`  Page 1/${first.pages}: ${allIds.length} ids`);
 
     for (let i = 2; i <= first.pages; i++) {
-      // PAUZĂ INTENȚIONATĂ: Așteaptă 1 secundă între pagini ca să previi 429
-      await sleep(1000); 
+      // Pauză de 1.5 secunde între cereri
+      await sleep(1500);
 
       const data = await fetchFileSuNPage(type, i);
-      allIds.push(...data.ids);
-      console.log(`  Page ${i}/${first.pages}: ${data.ids.length} ids`);
+      
+      // Validare suplimentară: dacă după toate retry-urile tot a rămas gol pe o pagină intermediară
+      if ((!data.ids || data.ids.length === 0) && i < first.pages) {
+        throw new Error(`Pagina ${i} din ${first.pages} a rămas goală după retry-uri. Abandonăm pt a nu strica catalogul.`);
+      }
+
+      allIds.push(...(data.ids || []));
+      console.log(`  Page ${i}/${first.pages}: ${(data.ids || []).length} ids`);
     }
 
     console.log(`  Total ${type}: ${allIds.length}`);
@@ -75,10 +91,9 @@ async function fetchAllFileSuNIds(type) {
   } catch (err) {
     console.warn(`  [FileSuN] ${type} fetch failed: ${err.message}`);
     console.warn(`  [FileSuN] Using existing data if available`);
-    return null; // Signal to use existing data
+    return null; // Fallback pe datele existente din local
   }
 }
-
 // --- TMDB conversion ---
 
 function sleep(ms) {
