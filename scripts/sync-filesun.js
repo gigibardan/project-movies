@@ -25,10 +25,33 @@ if (!TMDB_KEY) {
 
 // --- FileSuN fetching ---
 
-async function fetchFileSuNPage(type, page) {
-  const res = await fetch(`${FILESUN_BASE}/${type}?page=${page}`);
-  if (!res.ok) throw new Error(`FileSuN HTTP ${res.status} for ${type} page ${page}`);
-  return res.json();
+
+// Funcție ajutătoare pentru cereri către FileSuN cu Retry automat la 429
+async function fetchFileSuNPage(type, page, retries = 5, backoff = 2000) {
+  const url = `${FILESUN_BASE}/${type}?page=${page}`;
+  
+  try {
+    const res = await fetch(url);
+    
+    // Dacă primești 429 (Rate Limit), așteaptă și încearcă din nou
+    if (res.status === 429) {
+      if (retries > 0) {
+        console.warn(`  [FileSuN] 429 Rate limited la pagina ${page}. Aștept ${backoff / 1000}s înainte de retry... (${retries} încercări rămase)`);
+        await sleep(backoff);
+        return fetchFileSuNPage(type, page, retries - 1, backoff * 2); // dublează pauza pentru următorul retry
+      }
+      throw new Error(`FileSuN HTTP 429 (Too Many Requests) - limite depășite definitiv.`);
+    }
+
+    if (!res.ok) throw new Error(`FileSuN HTTP ${res.status} pentru ${type} pagina ${page}`);
+    return await res.json();
+  } catch (err) {
+    if (retries > 0 && err.message.includes('429')) {
+      await sleep(backoff);
+      return fetchFileSuNPage(type, page, retries - 1, backoff * 2);
+    }
+    throw err;
+  }
 }
 
 async function fetchAllFileSuNIds(type) {
@@ -39,6 +62,9 @@ async function fetchAllFileSuNIds(type) {
     console.log(`  Page 1/${first.pages}: ${first.ids.length} ids`);
 
     for (let i = 2; i <= first.pages; i++) {
+      // PAUZĂ INTENȚIONATĂ: Așteaptă 1 secundă între pagini ca să previi 429
+      await sleep(1000); 
+
       const data = await fetchFileSuNPage(type, i);
       allIds.push(...data.ids);
       console.log(`  Page ${i}/${first.pages}: ${data.ids.length} ids`);
